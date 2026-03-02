@@ -6,6 +6,7 @@ class MetronomeLogic {
   final AudioPlayer _playerAccent = AudioPlayer();
   final AudioPlayer _playerNormal = AudioPlayer();
   Timer? _timer;
+  Timer? _tapTempoTimer;
 
   int bpm = 120;
   bool isPlaying = false;
@@ -14,6 +15,11 @@ class MetronomeLogic {
   // Nuevas variables de compás
   int beatsPerMeasure = 4; // Numerador (4, 6, 12)
   int noteValue = 4; // Denominador (4, 8)
+
+  // Variables para Tap Tempo
+  final List<int> _tapTimes = []; // Timestamps de cada tap
+  static const int _tapTimeoutMs = 3000; // Resetear si pasan 3s sin tap
+  static const int _minTapsRequired = 2; // Mínimo 2 taps para calcular
 
   MetronomeLogic() {
     _initAudio();
@@ -98,4 +104,57 @@ class MetronomeLogic {
       _startLoop(onTick); // Reinicia el timer con la nueva métrica
     }
   }
+
+  /// Registra un tap para cálculo de Tap Tempo
+  void tapTempo(Function onBpmUpdated) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // Si han pasado más de 3 segundos desde el último tap, resetear
+    if (_tapTimes.isNotEmpty &&
+        (now - _tapTimes.last) > _tapTimeoutMs) {
+      _tapTimes.clear();
+    }
+
+    _tapTimes.add(now);
+
+    // Esperar al menos 2 taps para calcular
+    if (_tapTimes.length >= _minTapsRequired) {
+      // Usar solo los últimos 4 taps para mayor precisión (3 intervalos)
+      List<int> tapsToUse = _tapTimes.length > 4 
+          ? _tapTimes.sublist(_tapTimes.length - 4) 
+          : _tapTimes;
+
+      // Calcular intervalos entre taps
+      List<int> intervals = [];
+      for (int i = 1; i < tapsToUse.length; i++) {
+        intervals.add(tapsToUse[i] - tapsToUse[i - 1]);
+      }
+
+      // Promediar los intervalos
+      int avgInterval = (intervals.reduce((a, b) => a + b) ~/ intervals.length);
+
+      // Convertir intervalo (ms) a BPM: BPM = 60000 / intervalo_ms
+      int newBpm = (60000 / avgInterval).round();
+
+      // Limitar rango válido
+      if (newBpm >= 40 && newBpm <= 240) {
+        bpm = newBpm;
+        // Si está tocando, reiniciar el loop con la nueva velocidad
+        if (isPlaying) {
+          _startLoop(onBpmUpdated);
+        }
+        // Actualizar UI siempre
+        onBpmUpdated();
+      }
+    }
+
+    // Resetear timer de timeout
+    _tapTempoTimer?.cancel();
+    _tapTempoTimer = Timer(const Duration(milliseconds: _tapTimeoutMs), () {
+      _tapTimes.clear();
+    });
+  }
+
+  /// Obtener la cantidad de taps registrados (para UI feedback)
+  int getTapCount() => _tapTimes.length;
 }

@@ -63,7 +63,7 @@ class _MetronomoSimpleState extends State<MetronomoSimple> {
                                       (esAcento
                                               ? Colors.redAccent
                                               : Colors.cyanAccent)
-                                          .withOpacity(0.6),
+                                          .withValues(alpha: 0.6),
                                   blurRadius: 12,
                                   spreadRadius: 2,
                                 ),
@@ -119,6 +119,47 @@ class _MetronomoSimpleState extends State<MetronomoSimple> {
                         () => _logic.updateBpm(v.toInt(), _actualizarUI),
                       );
                     },
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Botón Tap Tempo
+                GestureDetector(
+                  onTap: () {
+                    _logic.tapTempo(_actualizarUI);
+                    setState(() {});
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 50,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.yellow,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.touch_app,
+                          color: Colors.yellow,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          "TAP TEMPO${_logic.getTapCount() > 0 ? ' (${_logic.getTapCount()})' : ''}",
+                          style: const TextStyle(
+                            color: Colors.yellow,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
